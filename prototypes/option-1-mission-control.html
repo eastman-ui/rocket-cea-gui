@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rocket CEA GUI — Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #050a12;
+    --bg-secondary: #0a1020;
+    --bg-card: #0d1525;
+    --bg-input: #111b2e;
+    --border: #1a2744;
+    --border-active: #22d3ee;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #475569;
+    --accent-cyan: #22d3ee;
+    --accent-green: #22c55e;
+    --accent-amber: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-cyan-dim: rgba(34,211,238,0.15);
+    --accent-green-dim: rgba(34,197,94,0.12);
+    --glow-cyan: 0 0 20px rgba(34,211,238,0.3);
+    --glow-green: 0 0 15px rgba(34,197,94,0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(34,211,238,0.015) 2px,
+      rgba(34,211,238,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 48px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .topbar-brand svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--accent-cyan);
+    filter: drop-shadow(var(--glow-cyan));
+  }
+
+  .topbar-brand span {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+  }
+
+  .topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: var(--glow-green);
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  .topbar-nav {
+    display: flex;
+    gap: 2px;
+  }
+
+  .topbar-nav button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 6px 14px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+
+  .topbar-nav button:hover {
+    color: var(--text-secondary);
+  }
+
+  .topbar-nav button.active {
+    color: var(--accent-cyan);
+    border-bottom-color: var(--accent-cyan);
+    text-shadow: 0 0 8px rgba(34,211,238,0.4);
+  }
+
+  /* Main layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 340px 1fr 380px;
+    grid-template-rows: 1fr auto;
+    height: calc(100vh - 48px);
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .panel {
+    background: var(--bg-primary);
+    overflow-y: auto;
+    padding: 20px;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .panel-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    background: var(--accent-cyan-dim);
+    color: var(--accent-cyan);
+    letter-spacing: 1px;
+  }
+
+  /* Form elements */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-input:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 1px var(--accent-cyan-dim);
+  }
+
+  .form-select {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .reactant-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 60px;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: end;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent-cyan);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 16px;
+  }
+
+  .btn-primary:hover {
+    box-shadow: var(--glow-cyan);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  /* Results table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .data-table th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  .data-table tr:hover td {
+    background: var(--accent-cyan-dim);
+    color: var(--text-primary);
+  }
+
+  .metric-value {
+    font-weight: 600;
+    color: var(--accent-cyan);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .metric-unit {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  /* KPI cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px;
+  }
+
+  .kpi-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .kpi-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 10px rgba(34,211,238,0.25);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kpi-value.green { color: var(--accent-green); text-shadow: 0 0 10px rgba(34,197,94,0.25); }
+  .kpi-value.amber { color: var(--accent-amber); text-shadow: 0 0 10px rgba(245,158,11,0.25); }
+
+  /* 3D viewer area */
+  .viewer-area {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .viewer-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(34,211,238,0.03) 0%, transparent 70%),
+      linear-gradient(rgba(34,211,238,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,238,0.05) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+  }
+
+  .viewer-placeholder {
+    text-align: center;
+    z-index: 1;
+  }
+
+  .viewer-placeholder svg {
+    width: 64px;
+    height: 64px;
+    fill: none;
+    stroke: var(--accent-cyan);
+    stroke-width: 1;
+    opacity: 0.4;
+  }
+
+  .viewer-placeholder p {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* Nozzle diagram SVG */
+  .nozzle-svg {
+    z-index: 1;
+    opacity: 0.5;
+  }
+
+  .nozzle-svg text {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Tabs */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+  }
+
+  .tab-btn {
+    padding: 8px 16px;
+    background: none;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tab-btn:first-child { border-radius: 3px 0 0 0; }
+  .tab-btn:last-child { border-radius: 0 3px 0 0; }
+
+  .tab-btn:hover { color: var(--text-secondary); }
+
+  .tab-btn.active {
+    background: var(--bg-card);
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+  }
+
+  /* Composition chart placeholder */
+  .chart-bar-container {
+    margin-top: 16px;
+  }
+
+  .chart-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .chart-bar-label {
+    width: 60px;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: right;
+    padding-right: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .chart-bar-track {
+    flex: 1;
+    height: 20px;
+    background: var(--bg-input);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .chart-bar-fill {
+    height: 100%;
+    border-radius: 1px;
+    transition: width 0.4s ease;
+  }
+
+  .chart-bar-pct {
+    width: 40px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    padding-left: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Export panel */
+  .export-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .export-card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .btn-export {
+    width: 100%;
+    padding: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-export:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  .btn-export.primary {
+    background: var(--accent-cyan-dim);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-brand">
+      <svg viewBox="0 0 24 24"><path d="M12 2L4 8v4l8-4 8 4V8l-8-6zm0 8l-8 4v4l8 4 8-4v-4l-8-4z"/></svg>
+      <span>Rocket CEA</span>
+    </div>
+    <div class="topbar-nav">
+      <button class="active">CEA Input</button>
+      <button>Results</button>
+      <button>3D Model</button>
+      <button>Export</button>
+    </div>
+    <div class="topbar-status">
+      <span><span class="status-dot"></span>READY</span>
+      <span>localhost:8000</span>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- Left: CEA Input Form -->
+    <div class="panel" style="grid-row: 1 / 3;">
+      <div class="panel-header">
+        <span class="panel-title">CEA Configuration</span>
+        <span class="panel-badge">ROCKET</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Problem Type</label>
+        <select class="form-select">
+          <option>Rocket (Isp, Cstar, CF)</option>
+          <option>HP — Constant Enthalpy/Pressure</option>
+          <option>TP — Constant Temp/Pressure</option>
+          <option>Detonation</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Flow Model</label>
+        <select class="form-select">
+          <option>Equilibrium</option>
+          <option>Frozen</option>
+        </select>
+      </div>
+
+      <div class="panel-header" style="margin-top:20px">
+        <span class="panel-title">Reactants</span>
+        <button style="background:none;border:1px solid var(--border);color:var(--accent-cyan);font-family:inherit;font-size:10px;padding:2px 8px;border-radius:2px;cursor:pointer;letter-spacing:1px;">+ ADD</button>
+      </div>
+
+      <div class="reactant-row" style="margin-bottom:4px;">
+        <span class="form-label" style="margin:0">Species</span>
+        <span class="form-label" style="margin:0">Weight</span>
+        <span class="form-label" style="margin:0">Unit</span>
+      </div>
+
+      <div class="reactant-row">
+        <select class="form-select" style="padding:6px 10px;font-size:11px;">
+          <option>LOX (O2)</option>
+        </select>
+        <input class="form-input" style="padding:6px 10px;font-size:11px;text-align:right" value="6.000">
+        <select class="form-select" style="padding:6px 10px;font-size:11px;">
+          <option>O/F</option>
+        </select>
+      </div>
+
+      <div class="reactant-row">
+        <select class="form-select" style="padding:6px 10px;font-size:11px;">
+          <option>RP-1 (CH1.92)</option>
+        </select>
+        <input class="form-input" style="padding:6px 10px;font-size:11px;text-align:right" value="1.000">
+        <select class="form-select" style="padding:6px 10px;font-size:11px;">
+          <option>O/F</option>
+        </select>
+      </div>
+
+      <div class="panel-header" style="margin-top:20px">
+        <span class="panel-title">Chamber Conditions</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Chamber Pressure</label>
+        <div style="display:flex;gap:8px;">
+          <input class="form-input" value="1000" style="flex:1">
+          <select class="form-select" style="width:80px">
+            <option>psia</option>
+            <option>atm</option>
+            <option>bar</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Area Ratio (Ae/At)</label>
+        <input class="form-input" value="40.0">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Supersonic Area Ratio</label>
+        <input class="form-input" value="10.0">
+      </div>
+
+      <button class="btn-primary">&#9654; Run CEA Calculation</button>
+    </div>
+
+    <!-- Center: Results -->
+    <div class="panel" style="grid-row: 1;">
+      <div class="panel-header">
+        <span class="panel-title">Performance Results</span>
+        <span class="panel-badge" style="background:var(--accent-green-dim);color:var(--accent-green);">LOX/RP-1</span>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Isp (vac)</div>
+          <div class="kpi-value">311.5 <span class="metric-unit">s</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">C*</div>
+          <div class="kpi-value green">5762 <span class="metric-unit">ft/s</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Cf</div>
+          <div class="kpi-value amber">1.741</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">T_chamber</div>
+          <div class="kpi-value">6084 <span class="metric-unit">R</span></div>
+        </div>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active">Performance</button>
+        <button class="tab-btn">Thermo</button>
+        <button class="tab-btn">Composition</button>
+        <button class="tab-btn">Transport</button>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Chamber</th>
+            <th>Throat</th>
+            <th>Exit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>P (psia)</td>
+            <td class="metric-value">1000.0</td>
+            <td class="metric-value">560.8</td>
+            <td class="metric-value">1.22</td>
+          </tr>
+          <tr>
+            <td>T (R)</td>
+            <td class="metric-value">6084</td>
+            <td class="metric-value">5574</td>
+            <td class="metric-value">1942</td>
+          </tr>
+          <tr>
+            <td>Rho (lb/ft3)</td>
+            <td class="metric-value">0.127</td>
+            <td class="metric-value">0.082</td>
+            <td class="metric-value">0.00014</td>
+          </tr>
+          <tr>
+            <td>Mach</td>
+            <td class="metric-value">1.000</td>
+            <td class="metric-value">1.000</td>
+            <td class="metric-value">5.28</td>
+          </tr>
+          <tr>
+            <td>Vel (ft/s)</td>
+            <td class="metric-value">3502</td>
+            <td class="metric-value">4015</td>
+            <td class="metric-value">10032</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="panel-header" style="margin-top:24px">
+        <span class="panel-title">Mole Fractions (Exit)</span>
+      </div>
+
+      <div class="chart-bar-container">
+        <div class="chart-bar">
+          <span class="chart-bar-label">CO2</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:68%;background:var(--accent-cyan);"></div></div>
+          <span class="chart-bar-pct">0.341</span>
+        </div>
+        <div class="chart-bar">
+          <span class="chart-bar-label">CO</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:52%;background:var(--accent-cyan);opacity:0.8"></div></div>
+          <span class="chart-bar-pct">0.261</span>
+        </div>
+        <div class="chart-bar">
+          <span class="chart-bar-label">H2O</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:44%;background:var(--accent-green);"></div></div>
+          <span class="chart-bar-pct">0.220</span>
+        </div>
+        <div class="chart-bar">
+          <span class="chart-bar-label">H2</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:30%;background:var(--accent-green);opacity:0.7"></div></div>
+          <span class="chart-bar-pct">0.148</span>
+        </div>
+        <div class="chart-bar">
+          <span class="chart-bar-label">OH</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:5%;background:var(--accent-amber);"></div></div>
+          <span class="chart-bar-pct">0.024</span>
+        </div>
+        <div class="chart-bar">
+          <span class="chart-bar-label">O2</span>
+          <div class="chart-bar-track"><div class="chart-bar-fill" style="width:1%;background:var(--accent-amber);opacity:0.7"></div></div>
+          <span class="chart-bar-pct">0.006</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: 3D + Export -->
+    <div class="panel" style="grid-row: 1 / 3;">
+      <div class="panel-header">
+        <span class="panel-title">3D Nozzle Preview</span>
+        <span class="panel-badge">BELL (RAO)</span>
+      </div>
+
+      <div class="viewer-area" style="min-height:260px;">
+        <svg class="nozzle-svg" width="200" height="180" viewBox="0 0 200 180">
+          <!-- Bell nozzle cross-section -->
+          <path d="M60,20 L60,50 Q60,70 50,80 Q40,90 40,100 L40,155 Q40,170 80,175 L120,175 Q160,170 160,155 L160,100 Q160,90 150,80 Q140,70 140,50 L140,20 Z"
+                fill="none" stroke="var(--accent-cyan)" stroke-width="1.2" opacity="0.7"/>
+          <!-- Center line -->
+          <line x1="100" y1="10" x2="100" y2="180" stroke="var(--text-muted)" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.3"/>
+          <!-- Throat annotation -->
+          <line x1="38" y1="90" x2="52" y2="90" stroke="var(--accent-amber)" stroke-width="0.8"/>
+          <text x="34" y="94" fill="var(--accent-amber)" font-size="8" text-anchor="end">throat</text>
+          <!-- Exit annotation -->
+          <line x1="78" y1="175" x2="122" y2="175" stroke="var(--accent-green)" stroke-width="0.8"/>
+          <text x="165" y="178" fill="var(--accent-green)" font-size="8">exit</text>
+          <!-- Chamber annotation -->
+          <text x="100" y="16" fill="var(--text-muted)" font-size="7" text-anchor="middle">CHAMBER</text>
+          <!-- Axis label -->
+          <text x="100" y="96" fill="var(--text-muted)" font-size="6" text-anchor="middle" opacity="0.5">AXIS</text>
+        </svg>
+      </div>
+
+      <div class="panel-header" style="margin-top:16px">
+        <span class="panel-title">Nozzle Parameters</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Throat Dia</label>
+          <input class="form-input" value="1.50" style="font-size:11px">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Exit Dia</label>
+          <input class="form-input" value="9.49" style="font-size:11px">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Conv. Angle</label>
+          <input class="form-input" value="45°" style="font-size:11px">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label">Wall Thick</label>
+          <input class="form-input" value="0.125" style="font-size:11px">
+        </div>
+      </div>
+
+      <button class="btn-primary" style="margin-top:12px;font-size:11px;padding:8px">&#9654; Generate Model</button>
+
+      <div class="panel-header" style="margin-top:20px">
+        <span class="panel-title">RocketPy Export</span>
+      </div>
+
+      <div class="export-card">
+        <div class="export-card-title">Motor Configuration</div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.8">
+          <div>Isp: <span style="color:var(--accent-cyan)">311.5 s</span></div>
+          <div>C*: <span style="color:var(--accent-green)">5762 ft/s</span></div>
+          <div>Throat: <span style="color:var(--text-primary)">1.767 in²</span></div>
+          <div>Exit: <span style="color:var(--text-primary)">70.69 in²</span></div>
+        </div>
+      </div>
+
+      <div class="export-card">
+        <div class="export-card-title">Manual Inputs</div>
+        <div class="form-group" style="margin-bottom:8px">
+          <label class="form-label">Dry Mass (kg)</label>
+          <input class="form-input" value="" placeholder="e.g. 5.0" style="font-size:11px">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Rocket Dia (mm)</label>
+          <input class="form-input" value="" placeholder="e.g. 54" style="font-size:11px">
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">
+        <button class="btn-export primary" style="font-size:10px;padding:6px">.py</button>
+        <button class="btn-export" style="font-size:10px;padding:6px">.json</button>
+        <button class="btn-export" style="font-size:10px;padding:6px">.ipynb</button>
+      </div>
+    </div>
+
+    <!-- Bottom: Status bar -->
+    <div class="panel" style="grid-column: 2;padding:8px 20px;display:flex;align-items:center;gap:24px;font-size:10px;color:var(--text-muted);border-top:1px solid var(--border);">
+      <span><span class="status-dot" style="margin-right:4px"></span>Engine Ready</span>
+      <span>CEA v2.1 | Species: 2 | Eq: Equilibrium</span>
+      <span style="margin-left:auto">Pc=1000psia | O/F=6.0 | Ae/At=40</span>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rocket CEA GUI — HUD</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #030810;
+    --bg-panel: #060d18;
+    --bg-card: #0a1528;
+    --bg-input: #0d1a30;
+    --border: #132244;
+    --border-glow: #1e3a6e;
+    --text: #d0ddf0;
+    --text-bright: #ffffff;
+    --text-muted: #3d5580;
+    --cyan: #00f0ff;
+    --cyan-dim: rgba(0,240,255,0.1);
+    --cyan-mid: rgba(0,240,255,0.25);
+    --magenta: #ff00aa;
+    --magenta-dim: rgba(255,0,170,0.1);
+    --green: #00ff88;
+    --green-dim: rgba(0,255,136,0.1);
+    --amber: #ffaa00;
+    --amber-dim: rgba(255,170,0,0.1);
+    --red: #ff3355;
+    --glow-cyan: 0 0 15px rgba(0,240,255,0.4), 0 0 30px rgba(0,240,255,0.1);
+    --glow-green: 0 0 15px rgba(0,255,136,0.4);
+    --glow-magenta: 0 0 15px rgba(255,0,170,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(0,240,255,0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, rgba(255,0,170,0.02) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0,240,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HUD frame */
+  .hud-frame {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* Top bar */
+  .hud-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    background: linear-gradient(180deg, rgba(0,240,255,0.05) 0%, transparent 100%);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .hud-top::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.3;
+  }
+
+  .hud-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .hud-brand .icon {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--cyan);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--glow-cyan);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .hud-brand h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  .hud-brand .version {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    margin-left: -4px;
+  }
+
+  .hud-tabs {
+    display: flex;
+    gap: 2px;
+  }
+
+  .hud-tabs button {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .hud-tabs button:hover {
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .hud-tabs button.active {
+    color: var(--cyan);
+    border-color: var(--cyan);
+    background: var(--cyan-dim);
+    text-shadow: 0 0 8px rgba(0,240,255,0.5);
+  }
+
+  .hud-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+  }
+
+  .hud-status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: var(--glow-green);
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Main grid */
+  .hud-main {
+    display: grid;
+    grid-template-columns: 320px 1fr 340px;
+    flex: 1;
+    gap: 1px;
+    background: var(--border);
+  }
+
+  .hud-panel {
+    background: var(--bg-panel);
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  /* Panel headers */
+  .panel-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .panel-hdr h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    text-transform: uppercase;
+  }
+
+  .panel-tag {
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 3px 10px;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    text-transform: uppercase;
+    text-shadow: 0 0 6px rgba(0,240,255,0.4);
+  }
+
+  /* Form */
+  .form-field {
+    margin-bottom: 14px;
+  }
+
+  .form-field label {
+    display: block;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .form-field input,
+  .form-field select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-bright);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.15s;
+  }
+
+  .form-field input:focus,
+  .form-field select:focus {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 1px var(--cyan-dim), 0 0 15px rgba(0,240,255,0.15);
+  }
+
+  .form-field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300f0ff'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  .reactant-block {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .reactant-block::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+
+  .reactant-block.ox::before { background: var(--magenta); box-shadow: var(--glow-magenta); }
+  .reactant-block.fuel::before { background: var(--cyan); box-shadow: var(--glow-cyan); }
+
+  .reactant-type {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .reactant-block.ox .reactant-type { color: var(--magenta); }
+  .reactant-block.fuel .reactant-type { color: var(--cyan); }
+
+  .form-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .form-row .form-field { flex: 1; }
+  .form-row .narrow { flex: 0 0 80px; }
+
+  .btn-run {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(0,240,255,0.05));
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 20px;
+    text-shadow: 0 0 10px rgba(0,240,255,0.5);
+  }
+
+  .btn-run:hover {
+    background: linear-gradient(135deg, rgba(0,240,255,0.25), rgba(0,240,255,0.1));
+    box-shadow: var(--glow-cyan);
+    transform: translateY(-1px);
+  }
+
+  /* KPI cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .kpi-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-box::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+
+  .kpi-box.cyan::after { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .kpi-box.green::after { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .kpi-box.magenta::after { background: var(--magenta); box-shadow: 0 0 8px var(--magenta); }
+  .kpi-box.amber::after { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+  .kpi-box .kpi-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .kpi-box .kpi-val {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kpi-box.cyan .kpi-val { color: var(--cyan); text-shadow: var(--glow-cyan); }
+  .kpi-box.green .kpi-val { color: var(--green); text-shadow: var(--glow-green); }
+  .kpi-box.magenta .kpi-val { color: var(--magenta); text-shadow: var(--glow-magenta); }
+  .kpi-box.amber .kpi-val { color: var(--amber); text-shadow: 0 0 15px rgba(255,170,0,0.4); }
+
+  .kpi-box .kpi-unit {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 4px;
+    font-weight: 400;
+  }
+
+  /* Data table */
+  .hud-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .hud-table th {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hud-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(19,34,68,0.5);
+    color: var(--text);
+  }
+
+  .hud-table tr:hover td {
+    background: var(--cyan-dim);
+  }
+
+  .hud-table .val {
+    color: var(--cyan);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Composition bars */
+  .comp-section {
+    margin-top: 24px;
+  }
+
+  .comp-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .comp-label {
+    width: 55px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+    padding-right: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .comp-track {
+    flex: 1;
+    height: 18px;
+    background: var(--bg-input);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .comp-fill {
+    height: 100%;
+    transition: width 0.4s;
+  }
+
+  .comp-fill.cyan { background: linear-gradient(90deg, var(--cyan), rgba(0,240,255,0.5)); }
+  .comp-fill.magenta { background: linear-gradient(90deg, var(--magenta), rgba(255,0,170,0.5)); }
+  .comp-fill.green { background: linear-gradient(90deg, var(--green), rgba(0,255,136,0.5)); }
+  .comp-fill.amber { background: linear-gradient(90deg, var(--amber), rgba(255,170,0,0.5)); }
+
+  .comp-pct {
+    width: 45px;
+    font-size: 11px;
+    color: var(--text);
+    padding-left: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 3D Viewer */
+  .viewer-hud {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    position: relative;
+    height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .viewer-hud::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+
+  .viewer-hud::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(0,240,255,0.05) 0%, transparent 60%);
+  }
+
+  .viewer-hud svg { z-index: 1; }
+
+  .viewer-hud svg text {
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .viewer-hud .corner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: var(--cyan);
+    border-style: solid;
+    border-width: 0;
+    opacity: 0.4;
+  }
+
+  .viewer-hud .corner.tl { top: 8px; left: 8px; border-top-width: 1px; border-left-width: 1px; }
+  .viewer-hud .corner.tr { top: 8px; right: 8px; border-top-width: 1px; border-right-width: 1px; }
+  .viewer-hud .corner.bl { bottom: 8px; left: 8px; border-bottom-width: 1px; border-left-width: 1px; }
+  .viewer-hud .corner.br { bottom: 8px; right: 8px; border-bottom-width: 1px; border-right-width: 1px; }
+
+  /* Export section */
+  .export-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  .export-block h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--magenta);
+    margin-bottom: 10px;
+  }
+
+  .export-block h3.cyan { color: var(--cyan); }
+
+  .export-data {
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .export-data .key {
+    color: var(--text-muted);
+  }
+
+  .export-data .val {
+    color: var(--cyan);
+    font-weight: 500;
+  }
+
+  .btn-format {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+  }
+
+  .btn-format:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  .btn-format.active {
+    background: var(--cyan-dim);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    text-shadow: 0 0 6px rgba(0,240,255,0.5);
+  }
+
+  .format-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 14px;
+  }
+
+  /* Tabs */
+  .hud-tabs-bar {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hud-tabs-bar button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 10px 16px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+
+  .hud-tabs-bar button:hover {
+    color: var(--text);
+  }
+
+  .hud-tabs-bar button.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-panel); }
+  ::-webkit-scrollbar-thumb { background: var(--border-glow); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+  /* Separator */
+  .sep {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-glow), transparent);
+    margin: 16px 0;
+  }
+</style>
+</head>
+<body>
+  <div class="hud-frame">
+    <div class="hud-top">
+      <div class="hud-brand">
+        <div class="icon">R</div>
+        <div>
+          <h1>ROCKET CEA</h1>
+          <div class="version">PROPULSION ANALYSIS SYSTEM</div>
+        </div>
+      </div>
+      <div class="hud-tabs">
+        <button class="active">CONFIG</button>
+        <button>RESULTS</button>
+        <button>3D MODEL</button>
+        <button>EXPORT</button>
+      </div>
+      <div class="hud-status">
+        <span><span class="dot"></span>ONLINE</span>
+        <span>CEA v2.1</span>
+        <span>Pc 1000psia</span>
+      </div>
+    </div>
+
+    <div class="hud-main">
+      <!-- Left: Config -->
+      <div class="hud-panel">
+        <div class="panel-hdr">
+          <h2>Configuration</h2>
+          <span class="panel-tag">ROCKET</span>
+        </div>
+
+        <div class="form-field">
+          <label>Problem Type</label>
+          <select>
+            <option>Rocket (Isp, Cstar, CF)</option>
+            <option>HP — Enthalpy/Pressure</option>
+            <option>TP — Temp/Pressure</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label>Flow Model</label>
+          <select>
+            <option>Equilibrium</option>
+            <option>Frozen</option>
+          </select>
+        </div>
+
+        <div class="sep"></div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-family:'Orbitron';font-size:9px;letter-spacing:2px;color:var(--magenta)">OXIDIZER</span>
+        </div>
+
+        <div class="reactant-block ox">
+          <div class="reactant-type">OXIDIZER</div>
+          <div class="form-field" style="margin-bottom:8px">
+            <select style="font-size:12px">
+              <option>LOX (O₂)</option>
+              <option>N₂O₄</option>
+              <option>H₂O₂</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-field" style="margin:0">
+              <label>Weight</label>
+              <input value="6.000" style="font-size:12px">
+            </div>
+            <div class="form-field narrow" style="margin:0">
+              <label>Mode</label>
+              <select style="font-size:12px"><option>O/F</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="reactant-block fuel">
+          <div class="reactant-type">FUEL</div>
+          <div class="form-field" style="margin-bottom:8px">
+            <select style="font-size:12px">
+              <option>RP-1 (CH₁.₉₂)</option>
+              <option>LH₂ (H₂)</option>
+              <option>CH₄</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <div class="form-field" style="margin:0">
+              <label>Weight</label>
+              <input value="1.000" style="font-size:12px">
+            </div>
+            <div class="form-field narrow" style="margin:0">
+              <label>Mode</label>
+              <select style="font-size:12px"><option>O/F</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Chamber Pressure</label>
+            <input value="1000">
+          </div>
+          <div class="form-field narrow" style="flex:0 0 80px">
+            <label>Unit</label>
+            <select><option>psia</option><option>atm</option><option>bar</option></select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label>Area Ratio (Ae/At)</label>
+            <input value="40.0">
+          </div>
+          <div class="form-field">
+            <label>Supersonic AR</label>
+            <input value="10.0">
+          </div>
+        </div>
+
+        <button class="btn-run">&#9654; EXECUTE CEA</button>
+      </div>
+
+      <!-- Center: Results -->
+      <div class="hud-panel">
+        <div class="panel-hdr">
+          <h2>Performance</h2>
+          <span class="panel-tag" style="border-color:var(--green);color:var(--green)">LOX / RP-1</span>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-box cyan">
+            <div class="kpi-label">Isp (vac)</div>
+            <div class="kpi-val">311.5 <span class="kpi-unit">s</span></div>
+          </div>
+          <div class="kpi-box green">
+            <div class="kpi-label">C*</div>
+            <div class="kpi-val">5762 <span class="kpi-unit">ft/s</span></div>
+          </div>
+          <div class="kpi-box magenta">
+            <div class="kpi-label">Cf</div>
+            <div class="kpi-val">1.741</div>
+          </div>
+          <div class="kpi-box amber">
+            <div class="kpi-label">T_chamber</div>
+            <div class="kpi-val">6084 <span class="kpi-unit">R</span></div>
+          </div>
+        </div>
+
+        <div class="hud-tabs-bar">
+          <button class="active">PERF</button>
+          <button>THERMO</button>
+          <button>COMP</button>
+          <button>TRANSPORT</button>
+        </div>
+
+        <table class="hud-table">
+          <thead>
+            <tr>
+              <th>Property</th>
+              <th>Chamber</th>
+              <th>Throat</th>
+              <th>Exit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>P (psia)</td><td class="val">1000.0</td><td class="val">560.8</td><td class="val">1.22</td></tr>
+            <tr><td>T (R)</td><td class="val">6084</td><td class="val">5574</td><td class="val">1942</td></tr>
+            <tr><td>ρ (lb/ft³)</td><td class="val">0.127</td><td class="val">0.082</td><td class="val">0.00014</td></tr>
+            <tr><td>Mach</td><td class="val">1.000</td><td class="val">1.000</td><td class="val">5.28</td></tr>
+            <tr><td>Vel (ft/s)</td><td class="val">3502</td><td class="val">4015</td><td class="val">10032</td></tr>
+          </tbody>
+        </table>
+
+        <div class="comp-section">
+          <div class="panel-hdr">
+            <h2>Exit Composition</h2>
+          </div>
+          <div class="comp-row">
+            <span class="comp-label">CO₂</span>
+            <div class="comp-track"><div class="comp-fill cyan" style="width:68%"></div></div>
+            <span class="comp-pct">0.341</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-label">CO</span>
+            <div class="comp-track"><div class="comp-fill cyan" style="width:52%;opacity:0.7"></div></div>
+            <span class="comp-pct">0.261</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-label">H₂O</span>
+            <div class="comp-track"><div class="comp-fill green" style="width:44%"></div></div>
+            <span class="comp-pct">0.220</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-label">H₂</span>
+            <div class="comp-track"><div class="comp-fill green" style="width:30%;opacity:0.7"></div></div>
+            <span class="comp-pct">0.148</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-label">OH</span>
+            <div class="comp-track"><div class="comp-fill amber" style="width:5%"></div></div>
+            <span class="comp-pct">0.024</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-label">O₂</span>
+            <div class="comp-track"><div class="comp-fill amber" style="width:1%;opacity:0.7"></div></div>
+            <span class="comp-pct">0.006</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: 3D + Export -->
+      <div class="hud-panel">
+        <div class="panel-hdr">
+          <h2>Nozzle Model</h2>
+          <span class="panel-tag" style="border-color:var(--magenta);color:var(--magenta)">BELL (RAO)</span>
+        </div>
+
+        <div class="viewer-hud">
+          <div class="corner tl"></div>
+          <div class="corner tr"></div>
+          <div class="corner bl"></div>
+          <div class="corner br"></div>
+          <svg width="220" height="190" viewBox="0 0 220 190">
+            <line x1="110" y1="5" x2="110" y2="185" stroke="#1e3a6e" stroke-width="0.5" stroke-dasharray="4,6"/>
+            <path d="M70,15 L70,50 Q70,70 52,85 Q35,100 35,120 L35,165 Q35,180 110,185 Q185,180 185,165 L185,120 Q185,100 168,85 Q150,70 150,50 L150,15"
+                  fill="none" stroke="#00f0ff" stroke-width="1.5" opacity="0.8"/>
+            <path d="M65,15 L155,15" stroke="#00f0ff" stroke-width="0.5" opacity="0.4"/>
+            <text x="110" y="10" fill="#3d5580" font-size="7" text-anchor="middle">INJECTOR FACE</text>
+            <text x="28" y="85" fill="#ff00aa" font-size="7" text-anchor="end">THROAT</text>
+            <line x1="33" y1="85" x2="37" y2="85" stroke="#ff00aa" stroke-width="1"/>
+            <text x="110" y="198" fill="#00ff88" font-size="7" text-anchor="middle">EXIT PLANE</text>
+            <!-- Glow effect -->
+            <ellipse cx="110" cy="120" rx="85" ry="2" fill="#00f0ff" opacity="0.05"/>
+          </svg>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+          <div class="form-field" style="margin:0">
+            <label>Throat Dia</label>
+            <input value="1.50" style="font-size:12px">
+          </div>
+          <div class="form-field" style="margin:0">
+            <label>Exit Dia</label>
+            <input value="9.49" style="font-size:12px">
+          </div>
+          <div class="form-field" style="margin:0">
+            <label>Conv Angle</label>
+            <input value="45°" style="font-size:12px">
+          </div>
+          <div class="form-field" style="margin:0">
+            <label>Wall Thick</label>
+            <input value="0.125" style="font-size:12px">
+          </div>
+        </div>
+
+        <button class="btn-run" style="margin-top:12px;font-size:9px;padding:10px">&#9654; GENERATE 3D MODEL</button>
+
+        <div class="sep"></div>
+
+        <div class="panel-hdr">
+          <h2 style="color:var(--magenta)">RocketPy Export</h2>
+        </div>
+
+        <div class="export-block">
+          <h3 class="cyan">CEA Data</h3>
+          <div class="export-data">
+            <div><span class="key">Isp:</span> <span class="val">311.5 s</span></div>
+            <div><span class="key">C*:</span> <span class="val">5762 ft/s</span></div>
+            <div><span class="key">Throat:</span> <span class="val">1.767 in²</span></div>
+            <div><span class="key">Exit:</span> <span class="val">70.69 in²</span></div>
+          </div>
+        </div>
+
+        <div class="export-block">
+          <h3>Manual Inputs</h3>
+          <div class="form-field" style="margin-bottom:8px">
+            <label>Dry Mass (kg)</label>
+            <input placeholder="e.g. 5.0" style="font-size:12px">
+          </div>
+          <div class="form-field" style="margin-bottom:0">
+            <label>Rocket Dia (mm)</label>
+            <input placeholder="e.g. 54" style="font-size:12px">
+          </div>
+        </div>
+
+        <div class="format-row">
+          <button class="btn-format active">.PY</button>
+          <button class="btn-format">.JSON</button>
+          <button class="btn-format">.IPYNB</button>
+        </div>
+
+        <button class="btn-run" style="margin-top:10px;font-size:9px;padding:10px;border-color:var(--magenta);color:var(--magenta);background:linear-gradient(135deg,rgba(255,0,170,0.15),rgba(255,0,170,0.05));text-shadow:0 0 10px rgba(255,0,170,0.5)">&#8595; EXPORT</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
