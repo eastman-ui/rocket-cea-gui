@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rocket-cea-gui"
+version = "0.1.0"
+description = "GUI for NASA CEA rocket propulsion calculations with CAD generation and RocketPy export"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.10.0",
+    "jinja2>=3.1.0",
+    "aiofiles>=24.0.0",
+    "numpy>=2.0.0",
+]
+
+[project.optional-dependencies]
+cad = [
+    "cadquery>=2.4.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.28.0",
+    "ruff>=0.8.0",
+]
+
+[project.scripts]
+rocket-cea-gui = "rocket_cea_gui.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rocket_cea_gui"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
