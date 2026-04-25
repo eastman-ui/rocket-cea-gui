@@ -121,7 +121,7 @@ class CADGenerateResult(BaseModel):
     stl_preview_url: str
     step_download_url: str
     openscad_download_url: str
-    parameters: dict[str, float]
+    parameters: dict[str, object]
 
 
 class RocketPyExportRequest(BaseModel):

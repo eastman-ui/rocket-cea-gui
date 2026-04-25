@@ -128,9 +128,24 @@ class TestCADEndpoints:
         assert "id" in data
         assert "stl_preview_url" in data
 
-    def test_cad_file_download_not_implemented(self, client):
-        response = client.get("/api/cad/files/test123/preview.stl")
-        assert response.status_code == 501
+    def test_cad_file_download_not_found(self, client):
+        response = client.get("/api/cad/files/nonexistent/model.scad")
+        assert response.status_code == 404
+
+    def test_cad_file_download_scad(self, client):
+        # Generate a nozzle first
+        gen = client.post("/api/cad/generate", json={
+            "cea_result_id": "test123",
+            "nozzle_type": "conical",
+            "chamber_diameter": 3.0,
+            "chamber_length": 6.0,
+            "wall_thickness": 0.125,
+            "convergence_angle": 45.0,
+        })
+        result_id = gen.json()["id"]
+        response = client.get(f"/api/cad/files/{result_id}/model.scad")
+        assert response.status_code == 200
+        assert b"rotate_extrude" in response.content
 
 
 class TestExportEndpoints:
