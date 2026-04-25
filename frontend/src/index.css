@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #f4f1eb;
+  --color-cream-dark: #e8e4db;
+  --color-paper: #faf8f5;
+  --color-ink: #2c2416;
+  --color-ink-light: #6b5d4d;
+  --color-muted: #a0937f;
+  --color-border: #c8c0b4;
+  --color-border-light: #e0dcd5;
+  --color-accent: #c4500a;
+  --color-accent-hover: #a84208;
+  --color-accent-light: #c4500a1a;
+  --color-blue: #1a5c9e;
+  --color-blue-light: #1a5c9e0f;
+  --color-green: #2d7a3a;
+  --color-green-light: #2d7a3a14;
+  --color-red: #c42b2b;
+
+  --font-sans: 'Fira Sans', system-ui, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, monospace;
+}
+
+/* Base styles matching the original Blueprint prototype */
+body {
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  background-color: #f4f1eb;
+  color: #2c2416;
+  background-image:
+    linear-gradient(rgba(180,170,155,0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(180,170,155,0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Force Fira Code on all mono elements */
+.font-mono, code, [class*="font-mono"] {
+  font-family: 'Fira Code', monospace !important;
+}
