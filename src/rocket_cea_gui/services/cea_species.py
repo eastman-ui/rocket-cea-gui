@@ -21,6 +21,7 @@ _SPECIES_DB: list[SpeciesSearchResult] = [
     SpeciesSearchResult(name="Al", formula="Al", category="element", molecular_weight=26.98),
     SpeciesSearchResult(name="CO2", formula="CO2", category="product", molecular_weight=44.01),
     SpeciesSearchResult(name="CO", formula="CO", category="product", molecular_weight=28.01),
+    SpeciesSearchResult(name="N2", formula="N2", category="inert", molecular_weight=28.01),
     SpeciesSearchResult(name="H2O", formula="H2O", category="product", molecular_weight=18.02),
     SpeciesSearchResult(name="OH", formula="OH", category="product", molecular_weight=17.01),
 ]
