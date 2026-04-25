@@ -21,6 +21,6 @@ export const cad = {
   generate: (data: CADGenerateRequest) => api.post<CADGenerateResult>('/cad/generate', data).then(r => r.data),
 };
 
-export const exp = {
+export const exportApi = {
   rocketpy: (data: RocketPyExportRequest) => api.post<RocketPyExportResult>('/export/rocketpy', data).then(r => r.data),
 };

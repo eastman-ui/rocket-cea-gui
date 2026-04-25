@@ -10,12 +10,16 @@ interface Props {
     wall_thickness: number;
     convergence_angle: number;
     divergence_angle?: number;
+    throat_diameter?: number;
+    exit_diameter?: number;
   }) => void;
   loading?: boolean;
   stlUrl?: string;
+  stepUrl?: string;
+  scadUrl?: string;
 }
 
-export default function ModelPage({ result, onGenerate, loading, stlUrl }: Props) {
+export default function ModelPage({ result, onGenerate, loading, stlUrl, stepUrl, scadUrl }: Props) {
   const [nozzleType, setNozzleType] = useState<NozzleType>('conical');
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -28,6 +32,8 @@ export default function ModelPage({ result, onGenerate, loading, stlUrl }: Props
       wall_thickness: Number(fd.get('wall_thickness')),
       convergence_angle: Number(fd.get('convergence_angle')),
       divergence_angle: nozzleType === 'conical' ? Number(fd.get('divergence_angle')) : undefined,
+      throat_diameter: Number(fd.get('throat_diameter')),
+      exit_diameter: Number(fd.get('exit_diameter')),
     });
   };
 
@@ -134,15 +140,24 @@ export default function ModelPage({ result, onGenerate, loading, stlUrl }: Props
             </button>
           </form>
 
-          {stlUrl && (
+          {(stlUrl || stepUrl || scadUrl) && (
             <div className="mt-4 space-y-2">
               <h3 className="text-[11px] font-semibold tracking-[1.5px] uppercase text-muted">Downloads</h3>
-              <a href={stlUrl} className="block py-2 px-3 bg-paper border border-border rounded text-[12px] text-ink-light hover:border-accent hover:text-accent transition-colors">
-                Download STEP file
-              </a>
-              <a href={stlUrl} className="block py-2 px-3 bg-paper border border-border rounded text-[12px] text-ink-light hover:border-accent hover:text-accent transition-colors">
-                Download OpenSCAD (.scad)
-              </a>
+              {stepUrl && (
+                <a href={stepUrl} className="block py-2 px-3 bg-paper border border-border rounded text-[12px] text-ink-light hover:border-accent hover:text-accent transition-colors">
+                  Download STEP file
+                </a>
+              )}
+              {scadUrl && (
+                <a href={scadUrl} className="block py-2 px-3 bg-paper border border-border rounded text-[12px] text-ink-light hover:border-accent hover:text-accent transition-colors">
+                  Download OpenSCAD (.scad)
+                </a>
+              )}
+              {stlUrl && (
+                <a href={stlUrl} className="block py-2 px-3 bg-paper border border-border rounded text-[12px] text-ink-light hover:border-accent hover:text-accent transition-colors">
+                  Download STL preview
+                </a>
+              )}
             </div>
           )}
         </div>
