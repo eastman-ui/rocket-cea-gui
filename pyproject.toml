@@ -31,6 +31,9 @@ dev = [
 [project.scripts]
 rocket-cea-gui = "rocket_cea_gui.cli:main"
 
+[tool.scripts]
+build-frontend = "cd frontend && npx vite build"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/rocket_cea_gui"]
 

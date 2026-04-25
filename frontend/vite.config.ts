@@ -4,6 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    outDir: '../src/rocket_cea_gui/static',
+    emptyOutDir: true,
+  },
   server: {
     proxy: {
       '/api': {
