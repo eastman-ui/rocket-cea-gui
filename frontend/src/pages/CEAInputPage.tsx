@@ -4,16 +4,16 @@ import { z } from 'zod';
 import type { CEARunRequest } from '../types/api';
 
 const schema = z.object({
-  problem_type: z.enum(['rocket', 'hp', 'tp', 'shock', 'detonation']),
+  problem_type: z.enum(['rocket', 'hp', 'tp', 'shock', 'det', 'tv', 'uv', 'sp', 'sv']),
   flow_model: z.enum(['equilibrium', 'frozen']),
-  chamber_pressure: z.number().positive('Must be positive'),
+  chamber_pressure: z.coerce.number().positive('Must be positive'),
   pressure_unit: z.enum(['psia', 'atm', 'bar']),
-  area_ratio: z.number().positive('Must be positive'),
-  supersonic_area_ratio: z.number().positive('Must be positive').optional(),
+  area_ratio: z.coerce.number().positive('Must be positive'),
+  supersonic_area_ratio: z.coerce.number().positive('Must be positive').optional(),
   reactants: z.array(z.object({
     species: z.string().min(1, 'Select a species'),
-    weight: z.number().positive('Must be positive'),
-    amount_unit: z.enum(['of_ratio', 'wt_fraction', 'mol_fraction']),
+    weight: z.coerce.number().positive('Must be positive'),
+    amount_unit: z.enum(['of_ratio', 'wt_fraction', 'mol_fraction', 'phi', 'f/o']),
   })).min(1, 'Add at least one reactant'),
 });
 
@@ -64,7 +64,7 @@ interface Props {
 }
 
 export default function CEAInputPage({ onSubmit, loading }: Props) {
-  const { register, handleSubmit } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       problem_type: 'rocket',
@@ -98,6 +98,12 @@ export default function CEAInputPage({ onSubmit, loading }: Props) {
                 <option value="rocket">Rocket (Isp, Cstar)</option>
                 <option value="hp">HP — Enthalpy/Pressure</option>
                 <option value="tp">TP — Temp/Pressure</option>
+                <option value="det">Det — Chapman-Jouguet</option>
+                <option value="shock">Shock — Shock Tube</option>
+                <option value="tv">TV — Temp/Density</option>
+                <option value="uv">UV — Combustion (ρ)</option>
+                <option value="sp">SP — Entropy/Pressure</option>
+                <option value="sv">SV — Entropy/Density</option>
               </select>
             </div>
             <div style={{ flex: 1 }}>
@@ -133,7 +139,10 @@ export default function CEAInputPage({ onSubmit, loading }: Props) {
                 <label style={{ ...labelStyle, marginBottom: 0 }}>Mode</label>
                 <select {...register('reactants.0.amount_unit')} style={{ ...inputStyle, fontSize: 12, cursor: 'pointer' }}>
                   <option value="of_ratio">O/F</option>
+                  <option value="phi">phi (equiv)</option>
+                  <option value="f/o">F/O</option>
                   <option value="wt_fraction">Wt%</option>
+                  <option value="mol_fraction">Mol%</option>
                 </select>
               </div>
             </div>
@@ -182,6 +191,9 @@ export default function CEAInputPage({ onSubmit, loading }: Props) {
                 <option value="psia">psia</option>
                 <option value="atm">atm</option>
                 <option value="bar">bar</option>
+                <option value="mbar">mbar</option>
+                <option value="kpa">kPa</option>
+                <option value="mpa">MPa</option>
               </select>
             </div>
           </div>
@@ -196,6 +208,15 @@ export default function CEAInputPage({ onSubmit, loading }: Props) {
               <input {...register('supersonic_area_ratio')} style={inputStyle} />
             </div>
           </div>
+
+          {Object.keys(errors).length > 0 && (
+            <div style={{ padding: 10, background: '#fff3f3', border: '1px solid #d44', borderRadius: 4, marginBottom: 12, fontSize: 12, color: '#a00' }}>
+              {errors.chamber_pressure && <div>Chamber pressure: {errors.chamber_pressure.message}</div>}
+              {errors.area_ratio && <div>Area ratio: {errors.area_ratio.message}</div>}
+              {errors.reactants && <div>Reactants: Check species and weight values</div>}
+              {errors.supersonic_area_ratio && <div>Supersonic AR: {errors.supersonic_area_ratio.message}</div>}
+            </div>
+          )}
 
           <button
             type="submit"

@@ -10,7 +10,11 @@ class ProblemType(str, Enum):
     HP = "hp"
     TP = "tp"
     SHOCK = "shock"
-    DETONATION = "detonation"
+    DET = "det"
+    TV = "tv"
+    UV = "uv"
+    SP = "sp"
+    SV = "sv"
 
 
 class FlowModel(str, Enum):
@@ -38,6 +42,8 @@ class AmountUnit(str, Enum):
     WT_FRACTION = "wt_fraction"
     OF_RATIO = "of_ratio"
     MOL_FRACTION = "mol_fraction"
+    EQUIVALENCE_RATIO = "phi"
+    FUEL_OXIDIZER = "f/o"
 
 
 class NozzleType(str, Enum):

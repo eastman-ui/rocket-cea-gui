@@ -1,8 +1,8 @@
-export type ProblemType = 'rocket' | 'hp' | 'tp' | 'shock' | 'detonation';
+export type ProblemType = 'rocket' | 'hp' | 'tp' | 'shock' | 'det' | 'tv' | 'uv' | 'sp' | 'sv';
 export type FlowModel = 'equilibrium' | 'frozen';
 export type PressureUnit = 'psia' | 'atm' | 'bar' | 'mbar' | 'kpa' | 'mpa';
 export type TemperatureUnit = 'R' | 'K' | 'F' | 'C';
-export type AmountUnit = 'wt_fraction' | 'of_ratio' | 'mol_fraction';
+export type AmountUnit = 'wt_fraction' | 'of_ratio' | 'mol_fraction' | 'phi' | 'f/o';
 export type NozzleType = 'conical' | 'bell_rao';
 export type ExportFormat = 'python' | 'json' | 'notebook';
 
