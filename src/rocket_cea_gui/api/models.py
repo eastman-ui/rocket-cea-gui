@@ -65,14 +65,35 @@ class CEAReactant(BaseModel):
     temperature_unit: Optional[TemperatureUnit] = None
 
 
+class ExitConditionType(str, Enum):
+    AREA_RATIO = "area_ratio"
+    PRESSURE = "pressure"
+    MACH = "mach"
+    PRESSURE_RATIO = "pressure_ratio"
+
+
 class CEARunRequest(BaseModel):
     problem_type: ProblemType
     reactants: list[CEAReactant]
     chamber_pressure: float
     pressure_unit: PressureUnit
-    area_ratio: float
+    area_ratio: Optional[float] = None
     supersonic_area_ratio: Optional[float] = None
     flow_model: FlowModel
+    exit_condition_type: ExitConditionType = ExitConditionType.AREA_RATIO
+    exit_pressure: Optional[float] = None
+    exit_pressure_unit: Optional[PressureUnit] = None
+    exit_mach: Optional[float] = None
+    pressure_ratio: Optional[float] = None
+    assigned_temperature: Optional[float] = None
+    assigned_temperature_unit: Optional[TemperatureUnit] = None
+    # Sweep parameters
+    sweep_of_start: Optional[float] = None
+    sweep_of_end: Optional[float] = None
+    sweep_of_steps: Optional[int] = None
+    sweep_pressure_start: Optional[float] = None
+    sweep_pressure_end: Optional[float] = None
+    sweep_pressure_steps: Optional[int] = None
 
 
 class CEAStation(BaseModel):
@@ -81,6 +102,14 @@ class CEAStation(BaseModel):
     density: float
     mach: float
     velocity: float
+    enthalpy: float  # kJ/kg
+    internal_energy: float  # kJ/kg
+    gibbs_free_energy: float  # kJ/kg
+    entropy: float  # kJ/(kg·K)
+    molecular_weight: float
+    cp: float  # kJ/(kg·K)
+    gamma: float
+    sonic_velocity: float  # m/s
 
 
 class CEAPerformance(BaseModel):
@@ -120,6 +149,8 @@ class CADGenerateRequest(BaseModel):
     wall_thickness: float
     convergence_angle: float
     divergence_angle: Optional[float] = None
+    throat_diameter: Optional[float] = 1.5
+    exit_diameter: Optional[float] = None
 
 
 class CADGenerateResult(BaseModel):

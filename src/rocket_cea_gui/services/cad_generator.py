@@ -82,8 +82,12 @@ def _conical_inner_points(profile: NozzleProfile, n_points: int = 80) -> list[tu
     # Divergent section length
     div_len = (r_exit - r_throat) / math.tan(math.radians(profile.divergence_angle or 15))
 
-    # Chamber cylinder
+    # Chamber cylinder - start at back face
     points.append((0, r_chamber))
+    # Chamber back cap (center point for proper revolve)
+    points.append((0, 0))
+    # Chamber cylinder
+    points.append((profile.chamber_length, 0))
     points.append((profile.chamber_length, r_chamber))
 
     # Convergent section
@@ -119,8 +123,12 @@ def _bell_inner_points(profile: NozzleProfile, n_points: int = 80) -> list[tuple
     bell_len = div_len_conical * 0.8  # Bell is ~80% of conical length
 
     points = []
-    # Chamber
+    # Chamber - start at back face
     points.append((0, r_chamber))
+    # Chamber back cap (center point for proper revolve)
+    points.append((0, 0))
+    # Chamber cylinder
+    points.append((profile.chamber_length, 0))
     points.append((profile.chamber_length, r_chamber))
     # Convergent to throat
     points.append((profile.chamber_length + conv_len, r_throat))
@@ -232,37 +240,75 @@ def generate_step(profile: NozzleProfile, output_dir: str) -> str | None:
         else _bell_inner_points(profile)
     )
 
-    # Build inner contour as wire
-    inner_wire = cq.Workplane("XZ")
-    for i, (z, r) in enumerate(points):
-        if i == 0:
-            inner_wire = inner_wire.moveTo(z, r)
-        else:
-            inner_wire = inner_wire.lineTo(z, r)
+    # Filter out centerline points for actual profile (keep only r > 0)
+    wall_points = [(z, r) for z, r in points if r > 0]
 
-    # Close back to axis
-    inner_wire = inner_wire.lineTo(points[-1][0], 0).lineTo(0, 0).close()
+    # Build outer wall profile (offset by wall thickness)
+    outer_wall_points = [(z, r + profile.wall_thickness) for z, r in wall_points]
 
-    # Revolve inner
-    inner_solid = inner_wire.revolve()
-
-    # Build outer contour (offset by wall thickness)
-    outer_points = [(z, r + profile.wall_thickness) for z, r in points]
+    # Build outer solid: chamber back cap + outer wall
     outer_wire = cq.Workplane("XZ")
-    for i, (z, r) in enumerate(outer_points):
-        if i == 0:
-            outer_wire = outer_wire.moveTo(z, r)
-        else:
-            outer_wire = outer_wire.lineTo(z, r)
+    # Start at chamber back face, outer radius
+    outer_wire = outer_wire.moveTo(0, profile.chamber_radius + profile.wall_thickness)
+    # Chamber back face center
+    outer_wire = outer_wire.lineTo(0, 0)
+    # Follow outer wall points
+    for z, r in outer_wall_points:
+        outer_wire = outer_wire.lineTo(z, r)
+    # Close to axis at exit
+    outer_wire = outer_wire.lineTo(outer_wall_points[-1][0], 0)
+    # Close back to start along axis
+    outer_wire = outer_wire.lineTo(0, 0).close()
+    outer_solid = outer_wire.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0))
 
-    outer_wire = outer_wire.lineTo(outer_points[-1][0], 0).lineTo(0, 0).close()
-    outer_solid = outer_wire.revolve()
+    # Build inner solid (hollow bore)
+    inner_wire = cq.Workplane("XZ")
+    # Start at chamber back face, inner radius
+    inner_wire = inner_wire.moveTo(0, profile.chamber_radius)
+    # Chamber back face center
+    inner_wire = inner_wire.lineTo(0, 0)
+    # Follow inner wall points
+    for z, r in wall_points:
+        inner_wire = inner_wire.lineTo(z, r)
+    # Close to axis at exit
+    inner_wire = inner_wire.lineTo(wall_points[-1][0], 0)
+    # Close back to start along axis
+    inner_wire = inner_wire.lineTo(0, 0).close()
+    inner_solid = inner_wire.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0))
 
     # Cut inner from outer
     nozzle = outer_solid.cut(inner_solid)
 
+    # Scale from inches to mm for STEP (standard CAD unit)
+    outer_wall_points_mm = [(z * 25.4, (r + profile.wall_thickness) * 25.4) for z, r in wall_points]
+    inner_wall_points_mm = [(z * 25.4, r * 25.4) for z, r in wall_points]
+    chamber_r_mm = profile.chamber_radius * 25.4
+    chamber_r_outer_mm = (profile.chamber_radius + profile.wall_thickness) * 25.4
+
+    # Outer solid in mm
+    outer_wire_mm = cq.Workplane("XZ")
+    outer_wire_mm = outer_wire_mm.moveTo(0, chamber_r_outer_mm)
+    outer_wire_mm = outer_wire_mm.lineTo(0, 0)
+    for z, r in outer_wall_points_mm:
+        outer_wire_mm = outer_wire_mm.lineTo(z, r)
+    outer_wire_mm = outer_wire_mm.lineTo(outer_wall_points_mm[-1][0], 0)
+    outer_wire_mm = outer_wire_mm.lineTo(0, 0).close()
+    outer_solid_mm = outer_wire_mm.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0))
+
+    # Inner solid in mm
+    inner_wire_mm = cq.Workplane("XZ")
+    inner_wire_mm = inner_wire_mm.moveTo(0, chamber_r_mm)
+    inner_wire_mm = inner_wire_mm.lineTo(0, 0)
+    for z, r in inner_wall_points_mm:
+        inner_wire_mm = inner_wire_mm.lineTo(z, r)
+    inner_wire_mm = inner_wire_mm.lineTo(inner_wall_points_mm[-1][0], 0)
+    inner_wire_mm = inner_wire_mm.lineTo(0, 0).close()
+    inner_solid_mm = inner_wire_mm.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0))
+
+    nozzle_mm = outer_solid_mm.cut(inner_solid_mm)
+
     filepath = os.path.join(output_dir, f"nozzle_{uuid.uuid4().hex[:8]}.step")
-    cq.exporters.export(nozzle, filepath, cq.exporters.ExportTypes.STEP)
+    cq.exporters.export(nozzle_mm, filepath, cq.exporters.ExportTypes.STEP)
     return filepath
 
 
@@ -278,29 +324,36 @@ def generate_stl(profile: NozzleProfile, output_dir: str) -> str | None:
         else _bell_inner_points(profile)
     )
 
-    inner_wire = cq.Workplane("XZ")
-    for i, (z, r) in enumerate(points):
-        if i == 0:
-            inner_wire = inner_wire.moveTo(z, r)
-        else:
-            inner_wire = inner_wire.lineTo(z, r)
+    # Filter out centerline points for actual profile (keep only r > 0)
+    wall_points = [(z, r) for z, r in points if r > 0]
 
-    inner_wire = inner_wire.lineTo(points[-1][0], 0).lineTo(0, 0).close()
-    inner_solid = inner_wire.revolve()
+    # Build outer wall profile (offset by wall thickness)
+    outer_wall_points = [(z, r + profile.wall_thickness) for z, r in wall_points]
 
-    outer_points = [(z, r + profile.wall_thickness) for z, r in points]
+    # Build outer solid
     outer_wire = cq.Workplane("XZ")
-    for i, (z, r) in enumerate(outer_points):
-        if i == 0:
-            outer_wire = outer_wire.moveTo(z, r)
-        else:
-            outer_wire = outer_wire.lineTo(z, r)
+    outer_wire = outer_wire.moveTo(0, profile.chamber_radius + profile.wall_thickness)
+    outer_wire = outer_wire.lineTo(0, 0)
+    for z, r in outer_wall_points:
+        outer_wire = outer_wire.lineTo(z, r)
+    outer_wire = outer_wire.lineTo(outer_wall_points[-1][0], 0)
+    outer_wire = outer_wire.lineTo(0, 0).close()
+    outer_solid = outer_wire.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0))
 
-    outer_wire = outer_wire.lineTo(outer_points[-1][0], 0).lineTo(0, 0).close()
-    outer_solid = outer_wire.revolve()
+    # Build inner solid (hollow bore)
+    inner_wire = cq.Workplane("XZ")
+    inner_wire = inner_wire.moveTo(0, profile.chamber_radius)
+    inner_wire = inner_wire.lineTo(0, 0)
+    for z, r in wall_points:
+        inner_wire = inner_wire.lineTo(z, r)
+    inner_wire = inner_wire.lineTo(wall_points[-1][0], 0)
+    inner_wire = inner_wire.lineTo(0, 0).close()
+    inner_solid = inner_wire.revolve(angleDegrees=360, axisStart=(0, 0, 0), axisEnd=(1, 0, 0))
 
+    # Cut inner from outer
     nozzle = outer_solid.cut(inner_solid)
 
+    # STL stays in inches (native units)
     filepath = os.path.join(output_dir, f"nozzle_{uuid.uuid4().hex[:8]}.stl")
     cq.exporters.export(nozzle, filepath, cq.exporters.ExportTypes.STL)
     return filepath

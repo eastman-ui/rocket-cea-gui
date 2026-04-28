@@ -53,7 +53,10 @@ class TestRunCEA:
     def test_composition_present(self):
         req = CEARunRequest(
             problem_type=ProblemType.ROCKET,
-            reactants=[CEAReactant(species="O2", weight=6.0, amount_unit=AmountUnit.OF_RATIO)],
+            reactants=[
+                CEAReactant(species="RP-1", weight=1.0, amount_unit=AmountUnit.OF_RATIO),
+                CEAReactant(species="O2", weight=6.0, amount_unit=AmountUnit.OF_RATIO),
+            ],
             chamber_pressure=1000.0,
             pressure_unit=PressureUnit.PSIA,
             area_ratio=40.0,
@@ -61,7 +64,9 @@ class TestRunCEA:
         )
         result = run_cea(req)
         assert len(result.composition) > 0
-        assert result.composition[0].name == "CO2"
+        # Top species should be CO, H2O, CO2, or H2 for hydrocarbon combustion
+        top_species = [s.name for s in result.composition[:5]]
+        assert any(s in top_species for s in ["CO", "H2O", "CO2", "H2"])
 
     def test_throat_pressure_ratio(self):
         req = CEARunRequest(
@@ -81,7 +86,10 @@ class TestGetResult:
     def test_stored_result_retrievable(self):
         req = CEARunRequest(
             problem_type=ProblemType.ROCKET,
-            reactants=[CEAReactant(species="O2", weight=6.0, amount_unit=AmountUnit.OF_RATIO)],
+            reactants=[
+                CEAReactant(species="RP-1", weight=1.0, amount_unit=AmountUnit.OF_RATIO),
+                CEAReactant(species="O2", weight=6.0, amount_unit=AmountUnit.OF_RATIO),
+            ],
             chamber_pressure=1000.0,
             pressure_unit=PressureUnit.PSIA,
             area_ratio=40.0,

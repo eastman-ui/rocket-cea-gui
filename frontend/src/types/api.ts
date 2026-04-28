@@ -5,6 +5,7 @@ export type TemperatureUnit = 'R' | 'K' | 'F' | 'C';
 export type AmountUnit = 'wt_fraction' | 'of_ratio' | 'mol_fraction' | 'phi' | 'f/o';
 export type NozzleType = 'conical' | 'bell_rao';
 export type ExportFormat = 'python' | 'json' | 'notebook';
+export type ExitConditionType = 'area_ratio' | 'pressure' | 'mach' | 'pressure_ratio';
 
 export interface CEAReactant {
   species: string;
@@ -19,9 +20,23 @@ export interface CEARunRequest {
   reactants: CEAReactant[];
   chamber_pressure: number;
   pressure_unit: PressureUnit;
-  area_ratio: number;
+  area_ratio?: number;
   supersonic_area_ratio?: number;
   flow_model: FlowModel;
+  exit_condition_type?: ExitConditionType;
+  exit_pressure?: number;
+  exit_pressure_unit?: PressureUnit;
+  exit_mach?: number;
+  pressure_ratio?: number;
+  assigned_temperature?: number;
+  assigned_temperature_unit?: TemperatureUnit;
+  // Sweep parameters
+  sweep_of_start?: number;
+  sweep_of_end?: number;
+  sweep_of_steps?: number;
+  sweep_pressure_start?: number;
+  sweep_pressure_end?: number;
+  sweep_pressure_steps?: number;
 }
 
 export interface CEAStation {
@@ -30,6 +45,14 @@ export interface CEAStation {
   density: number;
   mach: number;
   velocity: number;
+  enthalpy: number;
+  internal_energy: number;
+  gibbs_free_energy: number;
+  entropy: number;
+  molecular_weight: number;
+  cp: number;
+  gamma: number;
+  sonic_velocity: number;
 }
 
 export interface CEAPerformance {
@@ -39,6 +62,7 @@ export interface CEAPerformance {
   cf: number;
   t_chamber: number;
   p_exit: number;
+  Ae_At?: number;
 }
 
 export interface CEASpeciesFraction {
@@ -73,6 +97,8 @@ export interface CADGenerateRequest {
   wall_thickness: number;
   convergence_angle: number;
   divergence_angle?: number;
+  throat_diameter?: number;
+  exit_diameter?: number;
 }
 
 export interface CADGenerateResult {

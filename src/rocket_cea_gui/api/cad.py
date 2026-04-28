@@ -11,6 +11,10 @@ router = APIRouter()
 
 @router.post("/generate", response_model=CADGenerateResult)
 def generate_cad(request: CADGenerateRequest) -> CADGenerateResult:
+    import logging
+    throat = request.throat_diameter if request.throat_diameter else 1.5
+    exit_d = request.exit_diameter if request.exit_diameter else 9.49
+    logging.info(f"CAD generate: chamber_dia={request.chamber_diameter}, chamber_len={request.chamber_length}, throat={throat}, exit={exit_d}, wall={request.wall_thickness}")
     result = generate_nozzle(
         nozzle_type=request.nozzle_type,
         chamber_diameter=request.chamber_diameter,
@@ -18,6 +22,8 @@ def generate_cad(request: CADGenerateRequest) -> CADGenerateResult:
         wall_thickness=request.wall_thickness,
         convergence_angle=request.convergence_angle,
         divergence_angle=request.divergence_angle,
+        throat_diameter=throat,
+        exit_diameter=exit_d,
     )
     return CADGenerateResult(
         id=result["id"],
