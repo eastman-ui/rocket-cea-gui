@@ -8,7 +8,17 @@ Local web app for NASA CEA rocket propulsion calculations, 3D nozzle/chamber CAD
 - **Nozzle CAD** — Generate conical and bell (Rao) nozzle profiles as OpenSCAD, STEP, and STL files
 - **RocketPy Export** — Export motor configurations for RocketPy simulations
 
-## Install
+## Quick Start (Docker)
+
+Requires only [Docker](https://docs.docker.com/get-docker/):
+
+```bash
+docker compose up
+```
+
+App runs at `http://localhost:8000`.
+
+## Install (Local)
 
 ```bash
 pip install -e .

@@ -1,0 +1,15 @@
+.git
+.venv
+.venv311
+node_modules
+frontend/node_modules
+__pycache__
+*.pyc
+*.egg-info
+dist
+build
+.firecrawl
+DEVELOPMENT_STATUS.md
+tests
+frontend/test-*
+frontend/test-frontend.mjs
