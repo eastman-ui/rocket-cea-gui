@@ -2,8 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom';
 
 const links = [
   { to: '/', label: 'Dashboard' },
+  { to: '/engineering', label: 'Engineering' },
   { to: '/model', label: '3D Model' },
-  { to: '/export', label: 'Export' },
 ];
 
 export default function Layout() {

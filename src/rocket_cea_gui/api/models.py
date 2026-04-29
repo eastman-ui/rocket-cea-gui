@@ -181,3 +181,123 @@ class RocketPyExportResult(BaseModel):
     id: str
     download_url: str
     filename: str
+
+
+# --- Engineering Calculator Models ---
+
+
+class ChamberSizingRequest(BaseModel):
+    thrust: Optional[float] = None
+    thrust_unit: str = "N"
+    mass_flow_rate: Optional[float] = None
+    c_star: float = 0.0
+    isp_vac: Optional[float] = None
+    cf: Optional[float] = None
+    chamber_pressure: float = 0.0
+    pressure_unit: PressureUnit = PressureUnit.PSIA
+    l_star: float = 60.0
+    l_star_unit: str = "in"
+    contraction_ratio: float = 3.0
+    convergence_angle: float = 45.0
+    cea_result_id: Optional[str] = None
+
+
+class ChamberSizingResult(BaseModel):
+    throat_area: float
+    throat_diameter: float
+    chamber_volume: float
+    chamber_diameter: float
+    chamber_length: float
+    chamber_length_cylindrical: float
+    convergent_length: float
+    mass_flow_rate: float
+    thrust: float
+
+
+class BartzHeatFluxRequest(BaseModel):
+    chamber_pressure: float = 0.0
+    pressure_unit: PressureUnit = PressureUnit.PSIA
+    c_star: float = 0.0
+    cp_chamber: float = 0.0
+    gamma_chamber: float = 0.0
+    t_chamber: float = 0.0
+    molecular_weight: float = 0.0
+    viscosity: Optional[float] = None
+    prandtl: float = 0.5
+    throat_diameter: float = 0.01
+    throat_radius_of_curvature: Optional[float] = None
+    area_ratio_exit: float = 10.0
+    wall_temperature: float = 600.0
+    recovery_factor: float = 0.9
+    mach_numbers: Optional[list[float]] = None
+    cea_result_id: Optional[str] = None
+
+
+class BartzStationResult(BaseModel):
+    station: str
+    mach: float
+    area_ratio: float
+    h_g: float
+    t_adiabatic_wall: float
+    heat_flux: float
+
+
+class BartzHeatFluxResult(BaseModel):
+    throat_diameter: float
+    stations: list[BartzStationResult]
+    max_heat_flux: float
+    max_heat_flux_station: str
+
+
+class InjectorElementType(str, Enum):
+    SHEAR_COAXIAL = "shear_coaxial"
+    UNLIKE_IMPINGING_DOUBLET = "unlike_impinging_doublet"
+    LIKE_DOUBLET = "like_doublet"
+    TRIPLET = "triplet"
+    PENTAD = "pentad"
+    SHOWERHEAD = "showerhead"
+
+
+class InjectorSizingRequest(BaseModel):
+    fuel_mass_flow_rate: float
+    oxidizer_mass_flow_rate: float
+    fuel_density: float
+    oxidizer_density: float
+    fuel_pressure_drop: float
+    oxidizer_pressure_drop: float
+    fuel_discharge_coefficient: float = 0.65
+    oxidizer_discharge_coefficient: float = 0.65
+    fuel_orifice_count: Optional[int] = None
+    oxidizer_orifice_count: Optional[int] = None
+    element_type: InjectorElementType = InjectorElementType.SHEAR_COAXIAL
+    pressure_unit: PressureUnit = PressureUnit.PSIA
+
+
+class InjectorOrificeResult(BaseModel):
+    propellant_name: str
+    mass_flow_rate: float
+    density: float
+    pressure_drop: float
+    discharge_coefficient: float
+    orifice_area: float
+    orifice_diameter: float
+    number_of_orifices: int
+    total_area: float
+    jet_velocity: float
+
+
+class InjectorElementInfo(BaseModel):
+    element_type: InjectorElementType
+    elements_per_injector: int
+    orifices_per_element: int
+    mixing_efficiency: float
+    impingement_angle: Optional[float] = None
+    design_notes: list[str] = []
+
+
+class InjectorSizingResult(BaseModel):
+    fuel: InjectorOrificeResult
+    oxidizer: InjectorOrificeResult
+    total_orifice_count: int
+    momentum_ratio: float
+    element_info: Optional[InjectorElementInfo] = None

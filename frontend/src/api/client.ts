@@ -7,6 +7,12 @@ import type {
   CADGenerateResult,
   RocketPyExportRequest,
   RocketPyExportResult,
+  ChamberSizingRequest,
+  ChamberSizingResult,
+  BartzHeatFluxRequest,
+  BartzHeatFluxResult,
+  InjectorSizingRequest,
+  InjectorSizingResult,
 } from '../types/api';
 
 const api = axios.create({ baseURL: '/api' });
@@ -20,6 +26,12 @@ export const cea = {
 
 export const cad = {
   generate: (data: CADGenerateRequest) => api.post<CADGenerateResult>('/cad/generate', data).then(r => r.data),
+};
+
+export const engineering = {
+  chamberSizing: (data: ChamberSizingRequest) => api.post<ChamberSizingResult>('/engineering/chamber-sizing', data).then(r => r.data),
+  bartzHeatFlux: (data: BartzHeatFluxRequest) => api.post<BartzHeatFluxResult>('/engineering/bartz-heat-flux', data).then(r => r.data),
+  injectorSizing: (data: InjectorSizingRequest) => api.post<InjectorSizingResult>('/engineering/injector-sizing', data).then(r => r.data),
 };
 
 export const exportApi = {

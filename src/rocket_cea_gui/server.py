@@ -6,12 +6,13 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import cea, cad, export
+from .api import cea, cad, engineering, export
 
 app = FastAPI(title="Rocket CEA GUI", version="0.1.0")
 
 app.include_router(cea.router, prefix="/api/cea", tags=["CEA"])
 app.include_router(cad.router, prefix="/api/cad", tags=["CAD"])
+app.include_router(engineering.router, prefix="/api/engineering", tags=["Engineering"])
 app.include_router(export.router, prefix="/api/export", tags=["Export"])
 
 
